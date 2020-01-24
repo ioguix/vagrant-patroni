@@ -7,15 +7,12 @@ set -o pipefail
 declare -a ETCD
 declare -a PGSQL
 
-ETCD=( "" )
-PGSQL=( "" )
-
 while getopts "n:v:e:p:" option; do
     case "${option}" in
         n) NODENAME="${OPTARG}" ;;
         v) PGVER="${OPTARG}" ;;
-        e) ETCD=( "${ETCD[@]}" "${OPTARG}" ) ;;
-        p) PGSQL=( "${PGSQL[@]}" "${OPTARG}" ) ;;
+        e) ETCD[${#ETCD[@]}]=$OPTARG ;;
+        p) PGSQL[${#PGSQL[@]}]=$OPTARG ;;
     esac
 done
 
@@ -37,10 +34,8 @@ for N in "${ETCD[@]}" "${PGSQL[@]}"; do
 done
 
 # install required packages
-P=$(curl -s "https://download.postgresql.org/pub/repos/yum/${PGVER}/redhat/rhel-7-x86_64/"|grep -Eo "pgdg-centos[0-9.]+-${PGVER}-[0-9]+\.noarch.rpm"|head -1)
-
-if ! rpm --quiet -q "${P/.rpm}"; then
-    yum install --nogpgcheck --quiet -y -e 0 "https://download.postgresql.org/pub/repos/yum/${PGVER}/redhat/rhel-7-x86_64/$P"
+if ! rpm --quiet -q "pgdg-redhat-repo"; then
+    yum install --nogpgcheck --quiet -y -e 0 "https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
 fi
 
 PACKAGES=(
@@ -51,10 +46,10 @@ PACKAGES=(
 yum install --nogpgcheck --quiet -y -e 0 "${PACKAGES[@]}"
 
 # These packages need the EPEL repo
-yum install --nogpgcheck --quiet -y -e 0 python34-pip python34-devel
+yum install --nogpgcheck --quiet -y -e 0 python3-pip python3-devel python3-psycopg2
 
 # Install Patroni
-pip3.4 --quiet install patroni[etcd]
+pip3 --quiet install patroni[etcd]
 
 
 # Create patroni service
@@ -72,7 +67,7 @@ Type=simple
 User=postgres
 Group=postgres
 
-ExecStart=/bin/patroni /etc/patroni/%i.yaml
+ExecStart=/usr/local/bin/patroni /etc/patroni/%i.yaml
 
 KillMode=process
 TimeoutSec=30

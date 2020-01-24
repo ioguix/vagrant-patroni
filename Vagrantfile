@@ -1,7 +1,7 @@
 require 'ipaddr'
 #require 'yaml'
 
-ENV["LC_ALL"] = 'C'
+ENV["LC_ALL"] = 'en_US.utf8'
 
 pgver         = 11
 start_ip      = '10.20.30.50'
