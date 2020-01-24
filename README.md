@@ -36,6 +36,23 @@ After some minutes and tons of log messages, you can connect to your servers usi
 vagrant ssh p1
 ~~~
 
+Setup `patronictl`:
+
+~~~
+/usr/local/bin/patronictl configure \
+  --config-file "${HOME:?}/.config/patroni/patronictl.yaml" \
+  --dcs "etcd://10.20.30.55:2379" \
+  --namespace "/service"
+~~~
+
+Play with the cluster!
+
+~~~
+/usr/local/bin/patronictl list patroni-demo
+/usr/local/bin/patronictl switchover --help
+/usr/local/bin/patronictl switchover patroni-demo --master p2 --candidate p1 --force
+~~~
+
 ## Destroying the cluster
 
 To destroy your cluster, run:
