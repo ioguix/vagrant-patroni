@@ -31,6 +31,7 @@ Vagrant.configure(2) do |config|
         lv.memory = 512
         lv.watchdog model: 'i6300esb'
         lv.default_prefix = 'patroni_'
+        lv.qemu_use_session = false
     end
 
     # disable default share
