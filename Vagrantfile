@@ -10,6 +10,7 @@ patroni_nodes = 'p1', 'p2'       # you must have 2+ patroni nodes
 
 Vagrant.configure(2) do |config|
 
+    vip_ip     = IPAddr.new(start_ip)
     next_ip    = IPAddr.new(start_ip).succ
     host_ip    = (IPAddr.new(start_ip) & "255.255.255.0").succ.to_s
     nodes_ips  = {}
@@ -42,7 +43,7 @@ Vagrant.configure(2) do |config|
     #    owner: 'root', group: 'root',
     #    rsync__args: [ "--verbose", "--archive", "--delete", "--copy-links", "--no-perms" ]
 
-    # system setup for etcd ndoes
+    # system setup for etcd nodes
     (etcd_nodes).each do |node|
         config.vm.define node do |conf|
             conf.vm.network 'private_network', ip: nodes_ips[node]
@@ -52,29 +53,41 @@ Vagrant.configure(2) do |config|
         end
     end
 
-    # system setup for patroni ndoes
+    # system setup for patroni nodes
     (patroni_nodes).each do |node|
         config.vm.define node do |conf|
-            args = [ '-n', node, '-v', pgver ];
-            (patroni_nodes).each do |p|
-                args.push("-p", "#{p}=#{nodes_ips[p]}")
-            end
+            args = [ '-n', node ];
+
             (etcd_nodes).each do |e|
                 args.push("-e", "#{e}=#{nodes_ips[e]}")
             end
-            
+
             conf.vm.network 'private_network', ip: nodes_ips[node]
-            conf.vm.provision 'patroni-setup', type: 'shell', path: 'provision/patroni.bash',
-                args: args,
+
+	    conf.vm.provision 'vipmanager-setup', type: 'shell',
+	        path: 'provision/vipmanager.bash',
+	        args: args + [ '-i', vip_ip.to_s],
+	        run: 'never'
+
+            (patroni_nodes).each do |p|
+                args.push("-p", "#{p}=#{nodes_ips[p]}")
+            end
+
+            conf.vm.provision 'patroni-setup', type: 'shell',
+	        path: 'provision/patroni.bash',
+                args: args + [ '-v', pgver ] ,
                 preserve_order: true
         end
     end
 
-    # Start Patroni on all nodes
+    # Start Patroni and/or vipmanager on all nodes
     (patroni_nodes).each do |node|
         config.vm.define node do |conf|
-            conf.vm.provision 'patroni', type: 'shell',
+            conf.vm.provision 'patroni-start', type: 'shell',
                 inline: 'systemctl start patroni@demo', run: 'never'
+
+            conf.vm.provision 'vipmanager-start', type: 'shell',
+                inline: 'systemctl restart vip-manager.service', run: 'never'
         end
     end
 end

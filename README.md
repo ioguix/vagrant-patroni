@@ -61,6 +61,20 @@ To destroy your cluster, run:
 vagrant destroy -f
 ~~~
 
+## Adding vip-manager to the mix
+
+vip-manager is designed to manage a VIP for your PostgreSQL cluster, it will
+automatically start it on the node where PostgreSQL is the leader.
+
+Follow the "Creating the cluster" procedure but use the following command
+instead of `make all`:
+
+~~~
+make vipmanager
+~~~
+
+With the default configuration, the VIP will be `10.20.30.50`.
+
 ## Tips
 
 Find all existing VM created by vagrant on your system:
