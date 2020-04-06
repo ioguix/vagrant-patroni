@@ -12,7 +12,6 @@ Vagrant.configure(2) do |config|
 
     vip_ip     = IPAddr.new(start_ip)
     next_ip    = IPAddr.new(start_ip).succ
-    host_ip    = (IPAddr.new(start_ip) & "255.255.255.0").succ.to_s
     nodes_ips  = {}
 
     ( patroni_nodes + etcd_nodes ).each do |node|
