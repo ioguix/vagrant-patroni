@@ -53,6 +53,14 @@ Play with the cluster!
 /usr/local/bin/patronictl switchover patroni-demo --master p2 --candidate p1 --force
 ~~~
 
+NOTE: We are using patroni's ability to use `etcd` api v3. Depending on your
+`etcd` version, you might need to use the following to see `patroni`'s keys
+with `etcdctl`.
+
+~~~
+export ETCDCTL_API=3
+~~~
+
 ## Destroying the cluster
 
 To destroy your cluster, run:
