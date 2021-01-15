@@ -121,7 +121,7 @@ restapi:
   connect_address: ${LOCAL_IP}:8008
 
 # Etcd cluster
-etcd:
+etcd3:
   hosts: ${ETCD_HOSTS:1}
 
 bootstrap:
