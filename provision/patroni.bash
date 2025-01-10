@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
 set -o errexit
-set -o nounset
+#set -o nounset
 set -o pipefail
+
+function msg {
+	echo "$*"
+}
 
 declare -a ETCD
 declare -a PGSQL
@@ -33,26 +37,21 @@ for N in "${ETCD[@]}" "${PGSQL[@]}"; do
     fi
 done
 
-# install required packages
-if ! rpm --quiet -q "pgdg-redhat-repo"; then
-    yum install --nogpgcheck --quiet -y -e 0 "https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
-fi
-
 PACKAGES=(
     screen vim gcc epel-release
     "postgresql${PGVER}" "postgresql${PGVER}-contrib" "postgresql${PGVER}-server"
+    "patroni-etcd"
 )
 
-yum install --nogpgcheck --quiet -y -e 0 "${PACKAGES[@]}"
+msg "Dnf install"
 
-# These packages need the EPEL repo
-yum install --nogpgcheck --quiet -y -e 0 python3-pip python3-devel python3-psycopg2
+dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+dnf -qy module disable postgresql
 
-# Install Patroni
-pip3 --quiet install patroni[etcd]
+dnf install --nogpgcheck --quiet -y -e 0 "${PACKAGES[@]}"
 
+msg "Create Patroni's service"
 
-# Create patroni service
 cat <<'EOF' > /etc/systemd/system/patroni@.service
 [Unit]
 Description=Patroni cluster %i
@@ -67,7 +66,7 @@ Type=simple
 User=postgres
 Group=postgres
 
-ExecStart=/usr/local/bin/patroni /etc/patroni/%i.yaml
+ExecStart=/usr/bin/patroni /etc/patroni/%i.yaml
 
 KillMode=process
 TimeoutSec=30
@@ -82,7 +81,8 @@ EOF
 
 systemctl --quiet daemon-reload
 
-# give writes on watchdog device to postgres
+msg "Add watchdog rules to give acces to the postgres user"
+
 cat <<'EOF' > /etc/udev/rules.d/99-watchdog.rules
 SUBSYSTEM=="misc", KERNEL=="watchdog", ACTION=="add", RUN+="/bin/setfacl -m u:postgres:rw- /dev/watchdog"
 EOF
@@ -91,7 +91,8 @@ modprobe i6300esb
 
 #getfacl /dev/watchdog
 
-# Firewall setting
+msg "Firewall setting"
+
 systemctl --quiet --now enable firewalld
 firewall-cmd --quiet --permanent --new-service=patroni
 firewall-cmd --quiet --permanent --service=patroni --set-short=Patroni
@@ -111,6 +112,8 @@ for E in "${ETCD[@]}"; do
     ETCD_HOSTS="${ETCD_HOSTS},${IP}:2379"
 done
 
+msg "Create Patroni's configuration"
+
 cat<<EOF > /etc/patroni/demo.yaml
 scope: patroni-demo
 name: ${NODENAME}
@@ -126,11 +129,11 @@ etcd3:
 
 bootstrap:
   dcs:
-    ttl: 30                           # check interval
-    loop_wait: 10                     # sleep time between each loop exec
-    retry_timeout: 10                 # timeout for various actions (postgresql or dcs)
+    ttl: 30                            # check interval
+    loop_wait: 10                      # sleep time between each loop exec
+    retry_timeout: 10                  # timeout for various actions (postgresql or dcs)
     #maximum_lag_on_failover: 16777216 # maximum lag in bytes to be part of the election process
-    master_start_timeout: 300         # 
+    master_start_timeout: 300          #
     #synchronous_mode: on/off
     postgresql:
       use_pg_rewind: false
@@ -138,14 +141,13 @@ bootstrap:
       parameters:
         archive_mode: "on"
         archive_command: /bin/true
-        
+    pg_hba:
+      - host replication replicator 0.0.0.0/0 md5
+      - host all all 0.0.0.0/0 md5
+
   initdb:
     - encoding: UTF8
     - data-checksums
-
-  pg_hba:
-    - host replication replicator 0.0.0.0/0 md5
-    - host all all 0.0.0.0/0 md5
 
 postgresql:
   listen: "*:5432"                        # listen_addresses parameter of pgsql
