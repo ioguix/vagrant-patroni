@@ -1,19 +1,22 @@
 export VAGRANT_BOX_UPDATE_CHECK_DISABLE=1
 export VAGRANT_CHECKPOINT_DISABLE=1
 
+NOPARALLEL=--no-parallel
+DEBUG=--debug
+
 .PHONY: all setup patroni vipmanager clean validate
 
 all: patroni
 
 setup:
-	vagrant up --provision
+	vagrant up $(DEBUG) $(NOPARALLEL) --provision
 
 patroni: setup
-	vagrant up --provision-with=patroni-start
+	vagrant up $(DEBUG) $(NOPARALLEL) --provision-with=patroni-start
 
 vipmanager: patroni
-	vagrant up --provision-with=vipmanager-setup
-	vagrant up --provision-with=vipmanager-start
+	vagrant up $(DEBUG) $(NOPARALLEL) --provision-with=vipmanager-setup
+	vagrant up $(DEBUG) $(NOPARALLEL) --provision-with=vipmanager-start
 
 clean:
 	vagrant destroy -f

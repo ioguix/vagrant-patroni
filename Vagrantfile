@@ -3,10 +3,10 @@ require 'ipaddr'
 
 ENV["LC_ALL"] = 'en_US.utf8'
 
-pgver         = 11
+pgver         = 17
 start_ip      = '10.20.30.50'
 etcd_nodes    = 'e1', 'e2', 'e3' # you must have 3+ etcd nodes
-patroni_nodes = 'p1', 'p2'       # you must have 2+ patroni nodes
+patroni_nodes = 'p1', 'p2', 'p3' # you must have 2+ patroni nodes
 
 Vagrant.configure(2) do |config|
 
@@ -23,7 +23,7 @@ Vagrant.configure(2) do |config|
     config.ssh.insert_key = false
 
     # https://vagrantcloud.com/search.
-    config.vm.box = 'centos/7'
+    config.vm.box = 'generic/rocky8'
 
     # hardware and host settings
     config.vm.provider 'libvirt' do |lv|
